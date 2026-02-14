@@ -81,9 +81,8 @@ export default function Garden({ flowers }) {
         const pos = positions[i]
         if (!pos) return null
         // Pseudo-random bloom timing per flower
-        const seed = ((i * 7919 + 1) % 997) / 997 // deterministic 0-1
-        const bloomDelay = seed * 1.5 // 0 to 1.5s
-        const bloomDuration = 0.5 + ((i * 6271 + 3) % 673) / 673 // 0.5 to 1.5s
+        const bloomDelay = 0.5 // all start at 0.5s
+        const bloomDuration = 1 + ((i * 6271 + 3) % 673) / 673 // 1 to 2s
         return (
           <div
             key={flower.id}
