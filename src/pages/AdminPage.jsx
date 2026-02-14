@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 export default function AdminPage() {
+  const ADMIN_EMAILS = ['nothenrynguyen@gmail.com']
+
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [flowers, setFlowers] = useState([])
@@ -13,13 +15,23 @@ export default function AdminPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
+      if (session && !ADMIN_EMAILS.includes(session.user.email)) {
+        supabase.auth.signOut()
+        setSession(null)
+      } else {
+        setSession(session)
+      }
       setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        setSession(session)
+        if (session && !ADMIN_EMAILS.includes(session.user.email)) {
+          supabase.auth.signOut()
+          setSession(null)
+        } else {
+          setSession(session)
+        }
         setLoading(false)
       }
     )
@@ -45,6 +57,10 @@ export default function AdminPage() {
 
   async function handleLogin(e) {
     e.preventDefault()
+    if (!ADMIN_EMAILS.includes(email.toLowerCase().trim())) {
+      alert('This email is not authorized for admin access.')
+      return
+    }
     setLoginLoading(true)
     const { error } = await supabase.auth.signInWithOtp({ email })
     if (error) {
