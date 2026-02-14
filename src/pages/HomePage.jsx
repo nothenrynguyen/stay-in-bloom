@@ -147,7 +147,7 @@ export default function HomePage() {
       {/* Bottom draw button */}
       <div className="bottom-bar">
         <button className="btn btn-draw" onClick={() => setShowModal(true)}>
-          plant a flower
+          plant a flower!
         </button>
       </div>
 

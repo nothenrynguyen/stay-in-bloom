@@ -98,12 +98,13 @@ export default function Garden({ flowers }) {
               flower.message && setTooltip({ id: flower.id, text: flower.message })
             }
             onMouseLeave={() => setTooltip(null)}
-            onClick={() =>
-              flower.message &&
+            onTouchStart={(e) => {
+              if (!flower.message) return
+              e.stopPropagation()
               setTooltip((prev) =>
                 prev?.id === flower.id ? null : { id: flower.id, text: flower.message }
               )
-            }
+            }}
           >
             <img
               src={flower.image_url}

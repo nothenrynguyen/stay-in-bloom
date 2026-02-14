@@ -179,15 +179,6 @@ export default function DrawingCanvas({ onSubmit, submitting }) {
         ))}
       </div>
 
-      <div className="tool-row">
-        <button
-          className={`btn btn-sm ${erasing ? 'btn-eraser-active' : 'btn-outline'}`}
-          onClick={() => setErasing(!erasing)}
-        >
-          {erasing ? '✏️ eraser on' : '🧹 eraser'}
-        </button>
-      </div>
-
       <div className="brush-size-control">
         <span className="brush-label">thin</span>
         <input
@@ -201,6 +192,12 @@ export default function DrawingCanvas({ onSubmit, submitting }) {
       </div>
 
       <div className="canvas-actions">
+        <button
+          className={`btn btn-sm ${erasing ? 'btn-eraser-active' : 'btn-outline'}`}
+          onClick={() => setErasing(!erasing)}
+        >
+          {erasing ? '✏️ eraser on' : '🧹 eraser'}
+        </button>
         <button className="btn btn-outline" onClick={clearCanvas}>
           Clear
         </button>
