@@ -196,17 +196,17 @@ export default function DrawingCanvas({ onSubmit, submitting }) {
           className={`btn btn-sm ${erasing ? 'btn-eraser-active' : 'btn-outline'}`}
           onClick={() => setErasing(!erasing)}
         >
-          {erasing ? '✏️ eraser on' : '🧹 eraser'}
+          {erasing ? 'eraser on' : 'eraser'}
         </button>
-        <button className="btn btn-outline" onClick={clearCanvas}>
-          Clear
+        <button className="btn btn-outline btn-sm" onClick={clearCanvas}>
+          clear
         </button>
         <button
-          className="btn btn-plant"
+          className="btn btn-plant btn-sm"
           onClick={handleSubmit}
           disabled={!hasDrawn || submitting}
         >
-          {submitting ? 'Planting...' : 'Plant It'}
+          {submitting ? 'planting...' : 'plant!'}
         </button>
       </div>
     </div>

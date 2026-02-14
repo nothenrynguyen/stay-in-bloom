@@ -379,8 +379,13 @@
 
 .canvas-actions {
   display: flex;
-  gap: 0.6rem;
+  gap: 0.5rem;
   margin-top: 0.2rem;
+  width: 100%;
+  max-width: 280px;
+}
+.canvas-actions .btn {
+  flex: 1;
 }
 
 .btn-eraser-active {
