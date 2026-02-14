@@ -63,9 +63,10 @@ function generatePositions(flowers, containerWidth, containerHeight, flowerSize)
 const GardenFlower = memo(function GardenFlower({
   flower, pos, size, index, isTooltipVisible, onShowTooltip, onHideTooltip, onToggleTooltip,
 }) {
-  // Staggered bloom: each flower pops in slightly after the previous one
-  const bloomDelay = 0.3 + index * 0.05
-  const bloomDuration = 1 + ((index * 6271 + 3) % 673) / 673 // 1–2s
+  // Random bloom delay within 0–1s, seeded by flower ID for consistency
+  const rng = createRng(uuidToSeed(flower.id))
+  const bloomDelay = rng() * 1
+  const bloomDuration = 0.45
 
   return (
     <div
@@ -75,7 +76,6 @@ const GardenFlower = memo(function GardenFlower({
         top: pos.y,
         width: size,
         height: size,
-        transform: `rotate(${pos.rotation}deg) scale(${pos.scale})`,
         '--flower-scale': pos.scale,
         '--flower-rot': `${pos.rotation}deg`,
         animationDelay: `${bloomDelay}s`,

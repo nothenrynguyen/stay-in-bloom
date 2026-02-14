@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import Garden from '../components/Garden'
 import DrawingCanvas from '../components/DrawingCanvas'
 import PixelTree from '../components/PixelTree'
+import RollingNumber from '../components/RollingNumber'
 
 export default function HomePage() {
   const [flowers, setFlowers] = useState([])
@@ -14,7 +15,9 @@ export default function HomePage() {
   const [showModal, setShowModal] = useState(false)
   const [closing, setClosing] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [hasDrawn, setHasDrawn] = useState(false)
   const modalRef = useRef(null)
+  const canvasRef = useRef(null)
 
   useEffect(() => {
     fetchFlowers()
@@ -79,7 +82,8 @@ export default function HomePage() {
     setLoading(false)
   }
 
-  async function handleSubmit(dataUrl) {
+  async function handleSubmit() {
+    const dataUrl = canvasRef.current.getDataUrl()
     // Verify the canvas isn't blank before uploading
     const img = new Image()
     const isBlank = await new Promise((resolve) => {
@@ -164,14 +168,35 @@ export default function HomePage() {
       {/* Top bar */}
       <header className="site-header">
         <div className="header-left">
-          <span className="header-icon">🌸</span>
+          <svg className="header-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="8" r="3" fill="#e8a0b4" />
+            <circle cx="8.5" cy="10.5" r="3" fill="#e8a0b4" />
+            <circle cx="15.5" cy="10.5" r="3" fill="#e8a0b4" />
+            <circle cx="9.5" cy="14" r="3" fill="#e8a0b4" />
+            <circle cx="14.5" cy="14" r="3" fill="#e8a0b4" />
+            <circle cx="12" cy="11.5" r="2.2" fill="#d4859c" />
+          </svg>
           <span className="header-title">STAY IN BLOOM</span>
         </div>
         <div className="header-right">
           {isAdmin && (
             <Link to="/admin" className="admin-badge">Admin</Link>
           )}
-          <span className="flower-counter">🌼 {flowers.length} flowers planted 🌼</span>
+          <span className="flower-counter">
+            <svg className="counter-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="12" cy="9" rx="2.5" ry="4.5" fill="#e8a0b4" />
+              <ellipse cx="12" cy="9" rx="4.5" ry="2.5" fill="#e8a0b4" />
+              <circle cx="12" cy="9" r="2" fill="#d4859c" />
+              <rect x="11.25" y="13" width="1.5" height="6" rx="0.75" fill="#e8a0b4" />
+            </svg>
+            {' '}<RollingNumber value={flowers.length} delay={0.3} /> flowers planted{' '}
+            <svg className="counter-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="12" cy="9" rx="2.5" ry="4.5" fill="#e8a0b4" />
+              <ellipse cx="12" cy="9" rx="4.5" ry="2.5" fill="#e8a0b4" />
+              <circle cx="12" cy="9" r="2" fill="#d4859c" />
+              <rect x="11.25" y="13" width="1.5" height="6" rx="0.75" fill="#e8a0b4" />
+            </svg>
+          </span>
         </div>
       </header>
 
@@ -234,7 +259,7 @@ export default function HomePage() {
                 <h2 className="modal-title">draw your flower</h2>
                 <p className="modal-subtitle">it'll be planted in the garden!</p>
 
-                <DrawingCanvas onSubmit={handleSubmit} submitting={submitting} />
+                <DrawingCanvas ref={canvasRef} onHasDrawnChange={setHasDrawn} />
 
                 <div className="message-input">
                   <input
@@ -248,7 +273,14 @@ export default function HomePage() {
 
                 <div className="modal-actions">
                   <button className="btn btn-secondary" onClick={closeModal}>
-                    Cancel
+                    cancel
+                  </button>
+                  <button
+                    className="btn btn-plant"
+                    onClick={handleSubmit}
+                    disabled={!hasDrawn || submitting}
+                  >
+                    {submitting ? 'planting...' : 'plant!'}
                   </button>
                 </div>
               </>

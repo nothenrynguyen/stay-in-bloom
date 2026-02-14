@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from 'react'
+import { useRef, useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react'
 
 const COLORS = [
   { hex: '#e74c3c', name: 'Red' },
@@ -69,7 +69,7 @@ function eraseStroke(ctx, from, to, size) {
   ctx.restore()
 }
 
-export default function DrawingCanvas({ onSubmit, submitting }) {
+const DrawingCanvas = forwardRef(function DrawingCanvas({ onHasDrawnChange }, ref) {
   const canvasRef = useRef(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [color, setColor] = useState(COLORS[0])
@@ -77,6 +77,18 @@ export default function DrawingCanvas({ onSubmit, submitting }) {
   const [hasDrawn, setHasDrawn] = useState(false)
   const [erasing, setErasing] = useState(false)
   const lastPoint = useRef(null)
+  const strokeHistory = useRef([]) // stack of ImageData snapshots
+
+  // Expose getDataUrl and hasDrawn to parent via ref
+  useImperativeHandle(ref, () => ({
+    getDataUrl: () => canvasRef.current.toDataURL('image/png'),
+    hasDrawn,
+  }), [hasDrawn])
+
+  // Notify parent when hasDrawn changes
+  useEffect(() => {
+    onHasDrawnChange?.(hasDrawn)
+  }, [hasDrawn, onHasDrawnChange])
 
   // Keep frequently-changing values in refs so useCallback deps stay stable
   const colorRef = useRef(color.hex)
@@ -114,11 +126,13 @@ export default function DrawingCanvas({ onSubmit, submitting }) {
 
   const startDrawing = useCallback((e) => {
     e.preventDefault()
+    const ctx = canvasRef.current.getContext('2d')
+    // Save canvas state before this stroke begins
+    strokeHistory.current.push(ctx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE))
     setIsDrawing(true)
     setHasDrawn(true)
     const pos = getPos(e)
     lastPoint.current = pos
-    const ctx = canvasRef.current.getContext('2d')
     if (erasingRef.current) {
       eraseStroke(ctx, pos, pos, brushSizeRef.current)
     } else {
@@ -149,13 +163,19 @@ export default function DrawingCanvas({ onSubmit, submitting }) {
   const clearCanvas = () => {
     const ctx = canvasRef.current.getContext('2d')
     ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
+    strokeHistory.current = []
     setHasDrawn(false)
     setErasing(false)
   }
 
-  const handleSubmit = () => {
-    const dataUrl = canvasRef.current.toDataURL('image/png')
-    onSubmit(dataUrl)
+  const undoStroke = () => {
+    if (strokeHistory.current.length === 0) return
+    const ctx = canvasRef.current.getContext('2d')
+    const prev = strokeHistory.current.pop()
+    ctx.putImageData(prev, 0, 0)
+    if (strokeHistory.current.length === 0) {
+      setHasDrawn(false)
+    }
   }
 
   return (
@@ -207,6 +227,12 @@ export default function DrawingCanvas({ onSubmit, submitting }) {
       </div>
 
       <div className="canvas-actions">
+        <button className="btn btn-outline btn-sm btn-icon" onClick={undoStroke} aria-label="Undo last stroke" title="Undo">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="1 4 1 10 7 10" />
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+          </svg>
+        </button>
         <button
           className={`btn btn-sm ${erasing ? 'btn-eraser-active' : 'btn-outline'}`}
           onClick={() => setErasing(!erasing)}
@@ -216,14 +242,9 @@ export default function DrawingCanvas({ onSubmit, submitting }) {
         <button className="btn btn-outline btn-sm" onClick={clearCanvas}>
           clear
         </button>
-        <button
-          className="btn btn-plant btn-sm"
-          onClick={handleSubmit}
-          disabled={!hasDrawn || submitting}
-        >
-          {submitting ? 'planting...' : 'plant!'}
-        </button>
       </div>
     </div>
   )
-}
+})
+
+export default DrawingCanvas
