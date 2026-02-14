@@ -80,6 +80,10 @@ export default function Garden({ flowers }) {
       {flowers.map((flower, i) => {
         const pos = positions[i]
         if (!pos) return null
+        // Pseudo-random bloom timing per flower
+        const seed = ((i * 7919 + 1) % 997) / 997 // deterministic 0-1
+        const bloomDelay = seed * 1.5 // 0 to 1.5s
+        const bloomDuration = 0.5 + ((i * 6271 + 3) % 673) / 673 // 0.5 to 1.5s
         return (
           <div
             key={flower.id}
@@ -92,7 +96,8 @@ export default function Garden({ flowers }) {
               transform: `rotate(${pos.rotation}deg) scale(${pos.scale})`,
               '--flower-scale': pos.scale,
               '--flower-rot': `${pos.rotation}deg`,
-              animationDelay: `${i * 120}ms`,
+              animationDelay: `${bloomDelay}s`,
+              animationDuration: `${bloomDuration}s`,
             }}
             onMouseEnter={() =>
               flower.message && setTooltip({ id: flower.id, text: flower.message })
