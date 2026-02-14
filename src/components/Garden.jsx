@@ -71,7 +71,7 @@ export default function Garden({ flowers }) {
   const flowerSize = Math.max(50, Math.min(90, containerSize.w / 12))
 
   return (
-    <div className="garden-container" ref={containerRef}>
+    <div className="garden-container" ref={containerRef} onClick={() => setTooltip(null)}>
       {flowers.length === 0 && (
         <p className="garden-empty">
           No flowers blooming yet — draw the first one below!
@@ -98,11 +98,15 @@ export default function Garden({ flowers }) {
               animationDelay: `${bloomDelay}s`,
               animationDuration: `${bloomDuration}s`,
             }}
-            onMouseEnter={() =>
+            onMouseEnter={() => {
+              if ('ontouchstart' in window) return // skip hover on touch devices
               flower.message && setTooltip({ id: flower.id, text: flower.message })
-            }
-            onMouseLeave={() => setTooltip(null)}
-            onTouchStart={(e) => {
+            }}
+            onMouseLeave={() => {
+              if ('ontouchstart' in window) return
+              setTooltip(null)
+            }}
+            onClick={(e) => {
               if (!flower.message) return
               e.stopPropagation()
               setTooltip((prev) =>
