@@ -25,6 +25,7 @@ export default function DrawingCanvas({ onSubmit, submitting }) {
   const [color, setColor] = useState(COLORS[0])
   const [brushSize, setBrushSize] = useState(8)
   const [hasDrawn, setHasDrawn] = useState(false)
+  const [erasing, setErasing] = useState(false)
   const lastPoint = useRef(null)
 
   useEffect(() => {
@@ -89,19 +90,43 @@ export default function DrawingCanvas({ onSubmit, submitting }) {
     const pos = getPos(e)
     lastPoint.current = pos
     const ctx = canvasRef.current.getContext('2d')
-    drawBrushStroke(ctx, pos, pos, brushSize, color)
-  }, [getPos, brushSize, color, drawBrushStroke])
+    if (erasing) {
+      ctx.save()
+      ctx.globalCompositeOperation = 'destination-out'
+      ctx.beginPath()
+      ctx.arc(pos.x, pos.y, brushSize / 2, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+    } else {
+      drawBrushStroke(ctx, pos, pos, brushSize, color)
+    }
+  }, [getPos, brushSize, color, drawBrushStroke, erasing])
 
   const draw = useCallback((e) => {
     e.preventDefault()
     if (!isDrawing) return
     const pos = getPos(e)
     const ctx = canvasRef.current.getContext('2d')
-    if (lastPoint.current) {
+    if (erasing) {
+      const from = lastPoint.current || pos
+      const dist = Math.hypot(pos.x - from.x, pos.y - from.y)
+      const steps = Math.max(Math.floor(dist / 2), 1)
+      ctx.save()
+      ctx.globalCompositeOperation = 'destination-out'
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps
+        const x = from.x + (pos.x - from.x) * t
+        const y = from.y + (pos.y - from.y) * t
+        ctx.beginPath()
+        ctx.arc(x, y, brushSize / 2, 0, Math.PI * 2)
+        ctx.fill()
+      }
+      ctx.restore()
+    } else if (lastPoint.current) {
       drawBrushStroke(ctx, lastPoint.current, pos, brushSize, color)
     }
     lastPoint.current = pos
-  }, [isDrawing, getPos, brushSize, color, drawBrushStroke])
+  }, [isDrawing, getPos, brushSize, color, drawBrushStroke, erasing])
 
   const stopDrawing = useCallback((e) => {
     if (e) e.preventDefault()
@@ -113,6 +138,7 @@ export default function DrawingCanvas({ onSubmit, submitting }) {
     const ctx = canvasRef.current.getContext('2d')
     ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
     setHasDrawn(false)
+    setErasing(false)
   }
 
   const handleSubmit = () => {
@@ -145,12 +171,21 @@ export default function DrawingCanvas({ onSubmit, submitting }) {
         {COLORS.map((c) => (
           <button
             key={c}
-            className={`color-swatch ${color === c ? 'active' : ''}`}
+            className={`color-swatch ${color === c && !erasing ? 'active' : ''}`}
             style={{ backgroundColor: c }}
-            onClick={() => setColor(c)}
+            onClick={() => { setColor(c); setErasing(false) }}
             aria-label={`Select color ${c}`}
           />
         ))}
+      </div>
+
+      <div className="tool-row">
+        <button
+          className={`btn btn-sm ${erasing ? 'btn-eraser-active' : 'btn-outline'}`}
+          onClick={() => setErasing(!erasing)}
+        >
+          {erasing ? '✏️ eraser on' : '🧹 eraser'}
+        </button>
       </div>
 
       <div className="brush-size-control">

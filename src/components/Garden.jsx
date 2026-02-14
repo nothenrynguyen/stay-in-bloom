@@ -90,6 +90,9 @@ export default function Garden({ flowers }) {
               width: flowerSize,
               height: flowerSize,
               transform: `rotate(${pos.rotation}deg) scale(${pos.scale})`,
+              '--flower-scale': pos.scale,
+              '--flower-rot': `${pos.rotation}deg`,
+              animationDelay: `${i * 120}ms`,
             }}
             onMouseEnter={() =>
               flower.message && setTooltip({ id: flower.id, text: flower.message })

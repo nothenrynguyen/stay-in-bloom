@@ -147,7 +147,7 @@ export default function HomePage() {
       {/* Bottom draw button */}
       <div className="bottom-bar">
         <button className="btn btn-draw" onClick={() => setShowModal(true)}>
-          Draw a Flower
+          plant a flower
         </button>
       </div>
 
@@ -170,8 +170,8 @@ export default function HomePage() {
               </div>
             ) : (
               <>
-                <h2 className="modal-title">Draw your flower</h2>
-                <p className="modal-subtitle">it'll be planted in the garden</p>
+                <h2 className="modal-title">draw your flower</h2>
+                <p className="modal-subtitle">it'll be planted in the garden!</p>
 
                 <DrawingCanvas onSubmit={handleSubmit} submitting={submitting} />
 
