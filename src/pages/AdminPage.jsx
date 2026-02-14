@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useEffect, useState, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
+const ADMIN_EMAILS = ['nothenrynguyen@gmail.com']
+
 export default function AdminPage() {
-  const ADMIN_EMAILS = ['nothenrynguyen@gmail.com']
 
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -39,13 +40,7 @@ export default function AdminPage() {
     return () => subscription.unsubscribe()
   }, [])
 
-  useEffect(() => {
-    if (session) {
-      fetchFlowers()
-    }
-  }, [session, tab])
-
-  async function fetchFlowers() {
+  const fetchFlowers = useCallback(async () => {
     const { data, error } = await supabase
       .from('flowers')
       .select('*')
@@ -53,7 +48,15 @@ export default function AdminPage() {
       .order('created_at', { ascending: false })
 
     if (!error && data) setFlowers(data)
-  }
+  }, [tab])
+
+  useEffect(() => {
+    if (session) {
+      // Data fetching on dependency change — safe to setState from async callback
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchFlowers()
+    }
+  }, [session, fetchFlowers])
 
   async function handleLogin(e) {
     e.preventDefault()
@@ -81,8 +84,21 @@ export default function AdminPage() {
 
   async function handleDelete(id) {
     if (!confirm('Delete this flower permanently?')) return
+
+    // Find the flower to get its image URL before deleting
+    const flower = flowers.find((f) => f.id === id)
     const { error } = await supabase.from('flowers').delete().eq('id', id)
-    if (!error) fetchFlowers()
+
+    if (!error) {
+      // Clean up the image from storage to avoid orphaned files
+      if (flower?.image_url) {
+        const filename = flower.image_url.split('/').pop()
+        if (filename) {
+          await supabase.storage.from('flower-images').remove([filename])
+        }
+      }
+      fetchFlowers()
+    }
   }
 
   async function handleLogout() {

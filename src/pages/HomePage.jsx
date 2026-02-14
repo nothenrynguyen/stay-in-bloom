@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import Garden from '../components/Garden'
@@ -14,6 +14,7 @@ export default function HomePage() {
   const [showModal, setShowModal] = useState(false)
   const [closing, setClosing] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const modalRef = useRef(null)
 
   useEffect(() => {
     fetchFlowers()
@@ -23,10 +24,42 @@ export default function HomePage() {
     })
   }, [])
 
-  // Lock body scroll when modal is open
+  // Lock body scroll + trap focus when modal is open
   useEffect(() => {
     if (showModal) {
       document.body.style.overflow = 'hidden'
+
+      // Focus trap: keep Tab cycling within the modal
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          closeModal()
+          return
+        }
+        if (e.key !== 'Tab') return
+        const modal = modalRef.current
+        if (!modal) return
+        const focusable = modal.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+        if (focusable.length === 0) return
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+        if (e.shiftKey) {
+          if (document.activeElement === first) { e.preventDefault(); last.focus() }
+        } else {
+          if (document.activeElement === last) { e.preventDefault(); first.focus() }
+        }
+      }
+      document.addEventListener('keydown', handleKeyDown)
+      // Auto-focus the first interactive element inside the modal
+      requestAnimationFrame(() => {
+        const modal = modalRef.current
+        if (modal) {
+          const first = modal.querySelector('button, [href], input, select, textarea')
+          first?.focus()
+        }
+      })
+      return () => document.removeEventListener('keydown', handleKeyDown)
     } else {
       document.body.style.overflow = ''
     }
@@ -47,6 +80,27 @@ export default function HomePage() {
   }
 
   async function handleSubmit(dataUrl) {
+    // Verify the canvas isn't blank before uploading
+    const img = new Image()
+    const isBlank = await new Promise((resolve) => {
+      img.onload = () => {
+        const c = document.createElement('canvas')
+        c.width = img.width
+        c.height = img.height
+        const ctx = c.getContext('2d')
+        ctx.drawImage(img, 0, 0)
+        const { data } = ctx.getImageData(0, 0, c.width, c.height)
+        // Check if every pixel's alpha channel is 0 (fully transparent)
+        resolve(data.every((_, i) => i % 4 !== 3 || data[i] === 0))
+      }
+      img.src = dataUrl
+    })
+
+    if (isBlank) {
+      alert('Your canvas is empty — draw something first!')
+      return
+    }
+
     setSubmitting(true)
 
     try {
@@ -154,7 +208,14 @@ export default function HomePage() {
       {/* Modal overlay with blur */}
       {showModal && (
         <div className={`modal-overlay ${closing ? 'closing' : ''}`} onClick={closeModal}>
-          <div className={`modal-content ${closing ? 'closing' : ''}`} onClick={(e) => e.stopPropagation()}>
+          <div
+            ref={modalRef}
+            className={`modal-content ${closing ? 'closing' : ''}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Draw a flower"
+            onClick={(e) => e.stopPropagation()}
+          >
             {done ? (
               <div className="success-message">
                 <h2>🌷 Flower planted!</h2>
