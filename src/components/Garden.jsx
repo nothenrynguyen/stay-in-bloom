@@ -21,39 +21,58 @@ function uuidToSeed(uuid) {
 }
 
 // Generates deterministic positions seeded by flower IDs
+// Uses a grid-jitter approach for even distribution across the screen
 function generatePositions(flowers, containerWidth, containerHeight, flowerSize) {
-  const positions = []
   const padding = flowerSize / 2
-  const minDist = flowerSize * 0.8
+  const count = flowers.length
+  if (count === 0) return []
 
-  for (const flower of flowers) {
-    const rng = createRng(uuidToSeed(flower.id))
-    let attempts = 0
-    let placed = false
+  // Calculate grid dimensions that best fit the container aspect ratio
+  const aspect = containerWidth / containerHeight
+  let cols = Math.max(1, Math.round(Math.sqrt(count * aspect)))
+  let rows = Math.max(1, Math.ceil(count / cols))
 
-    while (attempts < 60 && !placed) {
-      const x = padding + rng() * (containerWidth - flowerSize - padding)
-      const y = padding + rng() * (containerHeight - flowerSize - padding)
+  // Make sure we have enough cells
+  while (cols * rows < count) cols++
 
-      const tooClose = positions.some(
-        (p) => Math.hypot(p.x - x, p.y - y) < minDist
-      )
+  const cellW = (containerWidth - padding * 2) / cols
+  const cellH = (containerHeight - padding * 2) / rows
 
-      if (!tooClose) {
-        const rotation = (rng() - 0.5) * 20 // -10 to +10 degrees
-        const scale = 0.85 + rng() * 0.3 // 0.85 to 1.15
-        positions.push({ x, y, rotation, scale })
-        placed = true
-      }
-      attempts++
-    }
+  // Assign each flower to a grid cell using a seeded shuffle
+  // so the mapping is deterministic but feels random
+  const indices = Array.from({ length: cols * rows }, (_, i) => i)
 
-    // If we can't find a non-overlapping spot, place it anyway
-    if (!placed) {
-      const x = padding + rng() * (containerWidth - flowerSize - padding)
-      const y = padding + rng() * (containerHeight - flowerSize - padding)
-      positions.push({ x, y, rotation: (rng() - 0.5) * 20, scale: 0.9 + rng() * 0.2 })
-    }
+  // Seed shuffle from first flower ID for stability
+  const shuffleRng = createRng(uuidToSeed(flowers[0].id) ^ 0xbeef)
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(shuffleRng() * (i + 1))
+    ;[indices[i], indices[j]] = [indices[j], indices[i]]
+  }
+
+  const positions = []
+  for (let f = 0; f < count; f++) {
+    const cellIndex = indices[f]
+    const col = cellIndex % cols
+    const row = Math.floor(cellIndex / cols)
+
+    // Per-flower RNG for jitter within the cell
+    const rng = createRng(uuidToSeed(flowers[f].id))
+
+    // Jitter within ~70% of the cell so flowers don't sit on grid lines
+    const jitterX = (rng() - 0.5) * cellW * 0.7
+    const jitterY = (rng() - 0.5) * cellH * 0.7
+
+    const x = padding + (col + 0.5) * cellW + jitterX
+    const y = padding + (row + 0.5) * cellH + jitterY
+
+    // Clamp to stay within bounds
+    const cx = Math.max(padding, Math.min(containerWidth - flowerSize, x))
+    const cy = Math.max(padding, Math.min(containerHeight - flowerSize, y))
+
+    const rotation = (rng() - 0.5) * 20
+    const scale = 0.85 + rng() * 0.3
+
+    positions.push({ x: cx, y: cy, rotation, scale })
   }
 
   return positions
