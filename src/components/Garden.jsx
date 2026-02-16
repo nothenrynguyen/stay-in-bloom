@@ -66,8 +66,24 @@ function generatePositions(flowers, containerWidth, containerHeight, flowerSize)
     const y = padding + (row + 0.5) * cellH + jitterY
 
     // Clamp to stay within bounds
-    const cx = Math.max(padding, Math.min(containerWidth - flowerSize, x))
-    const cy = Math.max(padding, Math.min(containerHeight - flowerSize, y))
+    let cx = Math.max(padding, Math.min(containerWidth - flowerSize, x))
+    let cy = Math.max(padding, Math.min(containerHeight - flowerSize, y))
+
+    // Exclusion zones for bottom left and right corners (trees)
+    const cornerWidth = containerWidth * 0.15
+    const cornerHeight = containerHeight * 0.18
+    // Bottom left
+    if (cx < cornerWidth && cy > containerHeight - cornerHeight) {
+      // Nudge up and right
+      cy = containerHeight - cornerHeight - padding
+      cx = cornerWidth + padding
+    }
+    // Bottom right
+    if (cx > containerWidth - cornerWidth - flowerSize && cy > containerHeight - cornerHeight) {
+      // Nudge up and left
+      cy = containerHeight - cornerHeight - padding
+      cx = containerWidth - cornerWidth - flowerSize - padding
+    }
 
     const rotation = (rng() - 0.5) * 20
     const scale = 0.85 + rng() * 0.3
